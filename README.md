@@ -83,15 +83,18 @@ For instance, with [Jackson](http://jackson.codehaus.org), one could do the foll
 val jsonSample = (new ObjectMapper).readValue("""{"a":"A","b":"B"}""", classOf[Object])
 ```
 
-`JSONPath.query("$.a", jsonSample)` gives you `Right(non-empty iterator)`. This will allow you to iterate over all possible solutions to the query. 
+`JSONPath.query("$.a", jsonSample, false)` gives you `Right(non-empty iterator)`. This will allow you to iterate over all possible solutions to the query. 
 
 eg :
 
 ```scala
-JsonPath.query("$.a", jsonSample).right.map(_.toVector)
+JsonPath.query("$.a", jsonSample, false).right.map(_.toVector)
 ```
 
 gives you `Right(Vector("A"))`
+
+If you need to retrieve a value for non-existing fields you can set the third parameter to true. 
+It will return null if no value can be found for the provided path
 
 ## Licence
 
