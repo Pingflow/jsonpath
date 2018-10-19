@@ -34,25 +34,25 @@ object JsonPath {
       case ns: Parser.NoSuccess => Left(JPError(ns.msg))
     }
 
-  def query(query: String, jsonObject: Any): Either[JPError, Iterator[Any]] =
-    compile(query).right.map(_.query(jsonObject))
+  def query(query: String, jsonObject: Any, acceptMissingFields: Boolean): Either[JPError, Iterator[Any]] =
+    compile(query).right.map(_.query(jsonObject, acceptMissingFields))
 }
 
 class JsonPath(path: List[PathToken]) {
-  def query(jsonObject: Any): Iterator[Any] = new JsonPathWalker(jsonObject, path).walk()
+  def query(jsonObject: Any, acceptMissingFields: Boolean): Iterator[Any] = new JsonPathWalker(jsonObject, path, acceptMissingFields).walk()
 }
 
-class JsonPathWalker(rootNode: Any, fullPath: List[PathToken]) {
+class JsonPathWalker(rootNode: Any, fullPath: List[PathToken], acceptMissingFields: Boolean) {
 
-  def walk(): Iterator[Any] = walk(rootNode, fullPath)
+  def walk(): Iterator[Any] = walk(rootNode, fullPath, acceptMissingFields)
 
-  private[this] def walk(node: Any, path: List[PathToken]): Iterator[Any] =
+  private[this] def walk(node: Any, path: List[PathToken], acceptMissingFields: Boolean): Iterator[Any] =
     path match {
-      case head :: tail => walk1(node, head).flatMap(walk(_, tail))
+      case head :: tail => walk1(node, head, acceptMissingFields).flatMap(walk(_, tail, acceptMissingFields))
       case _            => Iterator.single(node)
     }
 
-  private[this] def walk1(node: Any, query: PathToken): Iterator[Any] =
+  private[this] def walk1(node: Any, query: PathToken, acceptMissingFields: Boolean): Iterator[Any] =
     query match {
       case RootNode    => Iterator.single(rootNode)
 
@@ -60,7 +60,7 @@ class JsonPathWalker(rootNode: Any, fullPath: List[PathToken]) {
 
       case Field(name) => node match {
         case obj: JMap[_, _] if obj.containsKey(name) => Iterator.single(obj.get(name))
-        case _                                        => Iterator.empty
+        case _                                        => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
       }
 
       case RecursiveField(name) => recFieldFilter(node, name)
@@ -69,54 +69,55 @@ class JsonPathWalker(rootNode: Any, fullPath: List[PathToken]) {
         case obj: JMap[_, _] =>
           // don't use collect on iterator with filter causes (executed twice)
           fieldNames.iterator.filter(obj.containsKey).map(obj.get)
-        case _ => Iterator.empty
+        case _ => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
       }
 
       case AnyField => node match {
         case obj: JMap[_, _] => obj.values.iterator.asScala
-        case _               => Iterator.empty
+        case _               => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
       }
 
       case ArraySlice(None, None, 1) => node match {
         case array: JList[_] => array.asScala.iterator
-        case _               => Iterator.empty
+        case _               => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
       }
 
       case ArraySlice(start, stop, step) => node match {
         case array: JList[_] => sliceArray(array, start, stop, step)
-        case _               => Iterator.empty
+        case _               => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
       }
 
       case ArrayRandomAccess(indices) => node match {
         case array: JList[_] => indices.iterator.collect {
           case i if i >= 0 && i < array.size  => array.get(i)
           case i if i < 0 && i >= -array.size => array.get(i + array.size)
+          case _                              => if (acceptMissingFields) null
         }
-        case _ => Iterator.empty
+        case _ => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
       }
 
-      case RecursiveFilterToken(filterToken) => recFilter(node, filterToken)
+      case RecursiveFilterToken(filterToken) => recFilter(node, filterToken, acceptMissingFields)
 
-      case filterToken: FilterToken          => applyFilter(node, filterToken)
+      case filterToken: FilterToken          => applyFilter(node, filterToken, acceptMissingFields)
 
       case RecursiveAnyField                 => Iterator.single(node) ++ recFieldExplorer(node)
     }
 
-  private[this] def recFilter(node: Any, filterToken: FilterToken): Iterator[Any] = {
+  private[this] def recFilter(node: Any, filterToken: FilterToken, acceptMissingFields: Boolean): Iterator[Any] = {
 
     def allNodes(curr: Any): Iterator[Any] = curr match {
       case array: JList[_]                 => array.asScala.iterator.flatMap(allNodes)
       case obj: JMap[_, _] if !obj.isEmpty => Iterator.single(obj) ++ obj.values.iterator.asScala.flatMap(allNodes)
-      case _                               => Iterator.empty
+      case _                               => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
     }
 
-    allNodes(node).flatMap(applyFilter(_, filterToken))
+    allNodes(node).flatMap(applyFilter(_, filterToken, acceptMissingFields))
   }
 
-  private[this] def applyFilter(currentNode: Any, filterToken: FilterToken): Iterator[Any] = {
+  private[this] def applyFilter(currentNode: Any, filterToken: FilterToken, acceptMissingFields: Boolean): Iterator[Any] = {
 
     def resolveSubQuery(node: Any, q: List[AST.PathToken], nextOp: Any => Boolean): Boolean = {
-      val it = walk(node, q)
+      val it = walk(node, q, acceptMissingFields)
       it.hasNext && nextOp(it.next())
     }
 
@@ -136,13 +137,13 @@ class JsonPathWalker(rootNode: Any, fullPath: List[PathToken]) {
       node match {
         case array: JList[_] => array.asScala.iterator
         case obj: JMap[_, _] => Iterator.single(obj)
-        case _               => Iterator.empty
+        case _               => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
       }
 
     def evaluateFilter(filterToken: FilterToken): Any => Boolean =
       filterToken match {
         case HasFilter(subQuery) =>
-          (node: Any) => walk(node, subQuery.path).hasNext
+          (node: Any) => walk(node, subQuery.path, acceptMissingFields).hasNext
 
         case ComparisonFilter(op, lhs, rhs) =>
           (node: Any) => applyBinaryOp(node, op, lhs, rhs)
@@ -166,7 +167,7 @@ class JsonPathWalker(rootNode: Any, fullPath: List[PathToken]) {
             case _      => recFieldFilter0(e.getValue)
           })
         case list: JList[_] => list.iterator.asScala.flatMap(recFieldFilter0)
-        case _              => Iterator.empty
+        case _              => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
       }
 
     recFieldFilter0(node)
@@ -179,7 +180,7 @@ class JsonPathWalker(rootNode: Any, fullPath: List[PathToken]) {
         values.iterator.asScala ++ values.iterator.asScala.flatMap(recFieldExplorer)
       case list: JList[_] =>
         list.iterator.asScala.flatMap(recFieldExplorer)
-      case _ => Iterator.empty
+      case _ => if (acceptMissingFields) Iterator.single(null) else Iterator.empty
     }
 
   private[this] def sliceArray(array: JList[_], start: Option[Int], stop: Option[Int], step: Int): Iterator[Any] = {

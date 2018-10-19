@@ -787,44 +787,44 @@ class JsonPathSpec extends FlatSpec with Matchers with JsonPathMatchers {
 
   val valuesWithParensAndBraces =
     """{
-    |  "error": {
-    |     "id": 1,
-    |    "message1": "bar(baz)",
-    |    "message2": "bar[baz]"
-    |  }
-    |}""".stripMargin
+      |  "error": {
+      |     "id": 1,
+      |    "message1": "bar(baz)",
+      |    "message2": "bar[baz]"
+      |  }
+      |}""".stripMargin
 
   //////////////
 
   "Incorrect JsonPath expressions" should "be handled properly" in {
-    JsonPath.query("€.$", goessnerJson) should be('left)
+    JsonPath.query("€.$", goessnerJson, false) should be('left)
   }
 
   "Keys starting with number" should "be handled properly" in {
     val json = parseJson(""" {"a": "b", "2": 2, "51a": "t"} """)
-    JsonPath.query("$.2", json) should findOrderedElements(int(2))
-    JsonPath.query("$.51a", json) should findOrderedElements(text("t"))
+    JsonPath.query("$.2", json, false) should findOrderedElements(int(2))
+    JsonPath.query("$.51a", json, false) should findOrderedElements(text("t"))
   }
 
   "Support of Goessner test cases" should "work with test set 1" in {
     val json = parseJson("""{"a":"a","b":"b","c d":"e"}""")
-    JsonPath.query("$.a", json) should findElements(text("a"))
-    JsonPath.query("$['a']", json) should findElements(text("a"))
+    JsonPath.query("$.a", json, false) should findElements(text("a"))
+    JsonPath.query("$['a']", json, false) should findElements(text("a"))
     // Not supported syntax "$.'c d'", here is an alternative to it
-    JsonPath.query("$['c d']", json) should findElements(text("e"))
-    JsonPath.query("$.*", json) should findElements(text("a"), text("b"), text("e"))
-    JsonPath.query("$['*']", json) should findElements(text("a"), text("b"), text("e"))
+    JsonPath.query("$['c d']", json, false) should findElements(text("e"))
+    JsonPath.query("$.*", json, false) should findElements(text("a"), text("b"), text("e"))
+    JsonPath.query("$['*']", json, false) should findElements(text("a"), text("b"), text("e"))
     // Not supported syntax "$[*]" ... shouldn't that operator only apply on arrays ?
   }
 
   it should "work with test set 2" in {
     val json = parseJson("""[ 1, "2", 3.14, true, null ]""")
-    JsonPath.query("$[0]", json) should findOrderedElements(int(1))
-    JsonPath.query("$[4]", json) should findOrderedElements(nullNode)
-    JsonPath.query("$[*]", json) should findOrderedElements(
+    JsonPath.query("$[0]", json, false) should findOrderedElements(int(1))
+    JsonPath.query("$[4]", json, false) should findOrderedElements(nullNode)
+    JsonPath.query("$[*]", json, false) should findOrderedElements(
       int(1), text("2"), double(3.14), bool(true), nullNode
     )
-    JsonPath.query("$[-1:]", json) should findOrderedElements(nullNode)
+    JsonPath.query("$[-1:]", json, false) should findOrderedElements(nullNode)
   }
 
   it should "work with test set 3" in {
@@ -838,13 +838,13 @@ class JsonPathSpec extends FlatSpec with Matchers with JsonPathMatchers {
           				           ]
           				         }""")
 
-    JsonPath.query("$.points[1]", json) should findOrderedElements(parseJson("""{ "id":"i2", "x":-2, "y": 2, "z":1 }"""))
-    JsonPath.query("$.points[4].x", json) should findOrderedElements(int(0))
-    JsonPath.query("$.points[?(@['id']=='i4')].x", json) should findOrderedElements(int(-6))
-    JsonPath.query("$.points[*].x", json) should findOrderedElements(int(4), int(-2), int(8), int(-6), int(0), int(1))
+    JsonPath.query("$.points[1]", json, false) should findOrderedElements(parseJson("""{ "id":"i2", "x":-2, "y": 2, "z":1 }"""))
+    JsonPath.query("$.points[4].x", json, false) should findOrderedElements(int(0))
+    JsonPath.query("$.points[?(@['id']=='i4')].x", json, false) should findOrderedElements(int(-6))
+    JsonPath.query("$.points[*].x", json, false) should findOrderedElements(int(4), int(-2), int(8), int(-6), int(0), int(1))
     // Non supported syntax "$['points'][?(@['x']*@['x']+@['y']*@['y'] > 50)].id"
-    JsonPath.query("$['points'][?(@['y'] >= 3)].id", json) should findOrderedElements(text("i3"), text("i6"))
-    JsonPath.query("$.points[?(@['z'])].id", json) should findOrderedElements(text("i2"), text("i5"))
+    JsonPath.query("$['points'][?(@['y'] >= 3)].id", json, false) should findOrderedElements(text("i3"), text("i6"))
+    JsonPath.query("$.points[?(@['z'])].id", json, false) should findOrderedElements(text("i2"), text("i5"))
     // Non supported syntax "$.points[(count(@)-1)].id"
   }
 
@@ -853,9 +853,9 @@ class JsonPathSpec extends FlatSpec with Matchers with JsonPathMatchers {
           			[true, false, true]
           		}""")
 
-    JsonPath.query("$.conditions[?(@ == true)]", json) should findElements(bool(true), bool(true))
-    JsonPath.query("$.conditions[?(@ == false)]", json) should findElements(bool(false))
-    JsonPath.query("$.conditions[?(false == @)]", json) should findElements(bool(false))
+    JsonPath.query("$.conditions[?(@ == true)]", json, false) should findElements(bool(true), bool(true))
+    JsonPath.query("$.conditions[?(@ == false)]", json, false) should findElements(bool(false))
+    JsonPath.query("$.conditions[?(false == @)]", json, false) should findElements(bool(false))
   }
 
   it should "work with nested boolean filters" in {
@@ -866,119 +866,119 @@ class JsonPathSpec extends FlatSpec with Matchers with JsonPathMatchers {
           			]
           		}""")
 
-    JsonPath.query("$.conditions[?(@['condition'] == true)].id", json) should findElements(text("i1"))
-    JsonPath.query("$.conditions[?(@['condition'] == false)].id", json) should findElements(text("i2"))
+    JsonPath.query("$.conditions[?(@['condition'] == true)].id", json, false) should findElements(text("i1"))
+    JsonPath.query("$.conditions[?(@['condition'] == false)].id", json, false) should findElements(text("i2"))
   }
 
   "Field accessors" should "work with a simple object" in {
     val json = parseJson("""{"foo" : "bar"}""")
-    JsonPath.query("$.*", json) should findElements(text("bar"))
-    JsonPath.query("$.foo", json) should findElements(text("bar"))
-    JsonPath.query("$..foo", json) should findElements(text("bar"))
-    JsonPath.query("$.bar", json) should findElements()
+    JsonPath.query("$.*", json, false) should findElements(text("bar"))
+    JsonPath.query("$.foo", json, false) should findElements(text("bar"))
+    JsonPath.query("$..foo", json, false) should findElements(text("bar"))
+    JsonPath.query("$.bar", json, false) should findElements()
   }
 
   it should "work with nested objects" in {
     val json = parseJson(""" { "foo" : {"bar" : "baz"} }""")
-    val x = JsonPath.query("$.foo", json)
+    val x = JsonPath.query("$.foo", json, false)
     x should findElements(obj("bar" -> text("baz")))
-    JsonPath.query("$.foo.bar", json) should findElements(text("baz"))
-    JsonPath.query("$..bar", json) should findElements(text("baz"))
+    JsonPath.query("$.foo.bar", json, false) should findElements(text("baz"))
+    JsonPath.query("$..bar", json, false) should findElements(text("baz"))
   }
 
   it should "work with arrays" in {
     val json = parseJson("""{"foo":[{"lang":"en"},{"lang":"fr"}]}""")
-    JsonPath.query("$.foo[*].lang", json) should findOrderedElements(text("en"), text("fr"))
+    JsonPath.query("$.foo[*].lang", json, false) should findOrderedElements(text("en"), text("fr"))
   }
 
   it should "work with null elements when fetching node" in {
     val json = parseJson("""{"foo":null}""")
-    JsonPath.query("$.foo", json) should findElements(nullNode)
+    JsonPath.query("$.foo", json, false) should findElements(nullNode)
   }
 
   it should "work with null elements when fetching children" in {
     val json = parseJson("""{"foo":null}""")
-    JsonPath.query("$.foo[*]", json) should findElements()
+    JsonPath.query("$.foo[*]", json, false) should findElements()
   }
 
   it should "work with nested arrays" in {
     val json = parseJson("""[[{"foo":1}]]""")
-    JsonPath.query("$.foo", json) should findOrderedElements()
-    JsonPath.query("$..foo", json) should findOrderedElements(int(1))
-    JsonPath.query("$[0][0].foo", json) should findOrderedElements(int(1))
+    JsonPath.query("$.foo", json, false) should findOrderedElements()
+    JsonPath.query("$..foo", json, false) should findOrderedElements(int(1))
+    JsonPath.query("$[0][0].foo", json, false) should findOrderedElements(int(1))
   }
 
   "Multi-fields accessors" should "be interpreted correctly" in {
     val json = parseJson("""{"menu":{"year":2013,"file":"open","options":[{"bold":true},{"font":"helvetica"},{"size":3}]}}""")
-    JsonPath.query("$.menu['file','year']", json) should findElements(text("open"), int(2013))
-    JsonPath.query("$..options['foo','bar']", json) should findElements()
-    JsonPath.query("$..options[*]['bold','size']", json) should findOrderedElements(bool(true), int(3))
+    JsonPath.query("$.menu['file','year']", json, false) should findElements(text("open"), int(2013))
+    JsonPath.query("$..options['foo','bar']", json, false) should findElements()
+    JsonPath.query("$..options[*]['bold','size']", json, false) should findOrderedElements(bool(true), int(3))
   }
 
   val ten = parseJson("[1,2,3,4,5,6,7,8,9,10]")
 
   "Array field slicing" should "work with random accessors" in {
-    JsonPath.query("$[0]", goessnerJson) should findElements()
-    JsonPath.query("$[0]", ten) should findOrderedElements(int(1))
-    JsonPath.query("$[-1]", ten) should findOrderedElements(int(10))
-    JsonPath.query("$[9]", ten) should findOrderedElements(int(10))
-    JsonPath.query("$[2,7]", ten) should findOrderedElements(int(3), int(8))
-    JsonPath.query("$[2,-7]", ten) should findOrderedElements(int(3), int(4))
-    JsonPath.query("$[2,45]", ten) should findOrderedElements(int(3))
+    JsonPath.query("$[0]", goessnerJson, false) should findElements()
+    JsonPath.query("$[0]", ten, false) should findOrderedElements(int(1))
+    JsonPath.query("$[-1]", ten, false) should findOrderedElements(int(10))
+    JsonPath.query("$[9]", ten, false) should findOrderedElements(int(10))
+    JsonPath.query("$[2,7]", ten, false) should findOrderedElements(int(3), int(8))
+    JsonPath.query("$[2,-7]", ten, false) should findOrderedElements(int(3), int(4))
+    JsonPath.query("$[2,45]", ten, false) should findOrderedElements(int(3))
   }
 
   it should "work when the slice operator has one separator" in {
-    JsonPath.query("$[:-1]", goessnerJson) should findElements()
-    JsonPath.query("$[:]", ten) should findOrderedElements(
+    JsonPath.query("$[:-1]", goessnerJson, false) should findElements()
+    JsonPath.query("$[:]", ten, false) should findOrderedElements(
       int(1), int(2), int(3), int(4), int(5), int(6), int(7), int(8), int(9), int(10)
     )
-    JsonPath.query("$[7:]", ten) should findOrderedElements(int(8), int(9), int(10))
-    JsonPath.query("$[-2:]", ten) should findOrderedElements(int(9), int(10))
-    JsonPath.query("$[:3]", ten) should findOrderedElements(int(1), int(2), int(3))
-    JsonPath.query("$[:-7]", ten) should findOrderedElements(int(1), int(2), int(3))
-    JsonPath.query("$[3:6]", ten) should findOrderedElements(int(4), int(5), int(6))
-    JsonPath.query("$[-5:-2]", ten) should findOrderedElements(int(6), int(7), int(8))
+    JsonPath.query("$[7:]", ten, false) should findOrderedElements(int(8), int(9), int(10))
+    JsonPath.query("$[-2:]", ten, false) should findOrderedElements(int(9), int(10))
+    JsonPath.query("$[:3]", ten, false) should findOrderedElements(int(1), int(2), int(3))
+    JsonPath.query("$[:-7]", ten, false) should findOrderedElements(int(1), int(2), int(3))
+    JsonPath.query("$[3:6]", ten, false) should findOrderedElements(int(4), int(5), int(6))
+    JsonPath.query("$[-5:-2]", ten, false) should findOrderedElements(int(6), int(7), int(8))
   }
 
   it should "work when the slice operator has two separators" in {
-    JsonPath.query("$[:6:2]", ten) should findOrderedElements(int(1), int(3), int(5))
-    JsonPath.query("$[1:9:3]", ten) should findOrderedElements(int(2), int(5), int(8))
-    JsonPath.query("$[:5:-1]", ten) should findOrderedElements(int(10), int(9), int(8), int(7))
-    JsonPath.query("$[:-4:-1]", ten) should findOrderedElements(int(10), int(9), int(8))
-    JsonPath.query("$[3::-1]", ten) should findOrderedElements(int(4), int(3), int(2), int(1))
-    JsonPath.query("$[-8::-1]", ten) should findOrderedElements(int(3), int(2), int(1))
+    JsonPath.query("$[:6:2]", ten, false) should findOrderedElements(int(1), int(3), int(5))
+    JsonPath.query("$[1:9:3]", ten, false) should findOrderedElements(int(2), int(5), int(8))
+    JsonPath.query("$[:5:-1]", ten, false) should findOrderedElements(int(10), int(9), int(8), int(7))
+    JsonPath.query("$[:-4:-1]", ten, false) should findOrderedElements(int(10), int(9), int(8))
+    JsonPath.query("$[3::-1]", ten, false) should findOrderedElements(int(4), int(3), int(2), int(1))
+    JsonPath.query("$[-8::-1]", ten, false) should findOrderedElements(int(3), int(2), int(1))
   }
 
   "Filters" should "be applied on array children and pick all matching ones" in {
     val json = parseJson("""[{"foo":1},{"foo":2},{"bar":3}]""")
-    JsonPath.query("$[?(@.foo)]", json) should findOrderedElements(obj("foo" -> int(1)), obj("foo" -> int(2)))
+    JsonPath.query("$[?(@.foo)]", json, false) should findOrderedElements(obj("foo" -> int(1)), obj("foo" -> int(2)))
   }
 
   it should "work with a deep subquery" in {
     val json2 = parseJson("""{"all":[{"foo":{"bar":1,"baz":2}},{"foo":3}]}""")
-    JsonPath.query("$.all[?(@.foo.bar)]", json2) should findElements(parseJson("""{"foo":{"bar":1,"baz":2}}"""))
+    JsonPath.query("$.all[?(@.foo.bar)]", json2, false) should findElements(parseJson("""{"foo":{"bar":1,"baz":2}}"""))
   }
 
   it should "pick only proper node" in {
     val json3 = parseJson("""{ "foo":{"bar":1, "baz":2}, "second":{"bar":3} }""")
-    JsonPath.query("$..[?(@.baz)]", json3) should findElements(parseJson("""{"bar":1,"baz":2}"""))
+    JsonPath.query("$..[?(@.baz)]", json3, false) should findElements(parseJson("""{"bar":1,"baz":2}"""))
   }
 
   it should "return only one result with object nested in object 1" in {
-    JsonPath.query("""$..state..[?(@.text == "(20)")].text""", parseJson(searches)) should findOrderedElements(text("(20)"))
+    JsonPath.query("""$..state..[?(@.text == "(20)")].text""", parseJson(searches), false) should findOrderedElements(text("(20)"))
   }
 
   it should "return only one result with object nested in object 2" in {
-    JsonPath.query("""$..[?(@.text == "(20)")].text""", parseJson(searches)) should findOrderedElements(text("(20)"))
+    JsonPath.query("""$..[?(@.text == "(20)")].text""", parseJson(searches), false) should findOrderedElements(text("(20)"))
   }
 
   it should "work with some boolean operators" in {
     val oneToFive = parseJson("[1,2,3,4,5]")
-    JsonPath.query("$[?(@ > 3)]", oneToFive) should findOrderedElements(int(4), int(5))
-    JsonPath.query("$[?(@ == 3)]", oneToFive) should findOrderedElements(int(3))
+    JsonPath.query("$[?(@ > 3)]", oneToFive, false) should findOrderedElements(int(4), int(5))
+    JsonPath.query("$[?(@ == 3)]", oneToFive, false) should findOrderedElements(int(3))
 
     val json = parseJson("""[{"foo":"a"},{"foo":"b"},{"bar":"c"}]""")
-    JsonPath.query("$[?(@.foo=='a' )]", json) should findOrderedElements(obj("foo" -> text("a")))
+    JsonPath.query("$[?(@.foo=='a' )]", json, false) should findOrderedElements(obj("foo" -> text("a")))
   }
 
   it should "work with non-alphanumeric values" in {
@@ -986,86 +986,86 @@ class JsonPathSpec extends FlatSpec with Matchers with JsonPathMatchers {
             						              { "a":6, "@":3, "$":4 },
             						              { "a":7, "@":4, "$":5 }
             						             ]}""")
-    JsonPath.query("""$.a[?(@['@']==3)]""", json) should findElements(parseJson("""{"a":6,"@":3,"$":4}"""))
-    JsonPath.query("""$.a[?(@['$']!=5)]""", json) should findElements(parseJson("""{"a":6,"@":3,"$":4}"""))
+    JsonPath.query("""$.a[?(@['@']==3)]""", json, false) should findElements(parseJson("""{"a":6,"@":3,"$":4}"""))
+    JsonPath.query("""$.a[?(@['$']!=5)]""", json, false) should findElements(parseJson("""{"a":6,"@":3,"$":4}"""))
   }
 
   it should "work with some predefined comparison operators" in {
     val oneToSeven = parseJson("[1,2,3,4,5,6,7]")
-    JsonPath.query("$[0][?(@>1)]", oneToSeven) should findElements()
-    JsonPath.query("$[?( @>1 && @<=4 )]", oneToSeven) should findOrderedElements(int(2), int(3), int(4))
-    JsonPath.query("$[?( @>6 && @<2 || @==3 || @<=4 && @>=4 )]", oneToSeven) should findOrderedElements(int(3), int(4))
-    JsonPath.query("$[?( @==7 || @<=4 && @>1)]", oneToSeven) should findOrderedElements(int(2), int(3), int(4), int(7))
-    JsonPath.query("$[?( @==1 || @>4 )]", oneToSeven) should findOrderedElements(int(1), int(5), int(6), int(7))
+    JsonPath.query("$[0][?(@>1)]", oneToSeven, false) should findElements()
+    JsonPath.query("$[?( @>1 && @<=4 )]", oneToSeven, false) should findOrderedElements(int(2), int(3), int(4))
+    JsonPath.query("$[?( @>6 && @<2 || @==3 || @<=4 && @>=4 )]", oneToSeven, false) should findOrderedElements(int(3), int(4))
+    JsonPath.query("$[?( @==7 || @<=4 && @>1)]", oneToSeven, false) should findOrderedElements(int(2), int(3), int(4), int(7))
+    JsonPath.query("$[?( @==1 || @>4 )]", oneToSeven, false) should findOrderedElements(int(1), int(5), int(6), int(7))
   }
 
   it should "support reference to the root-node" in {
     val authors = """[{"pseudo":"Tolkien","name": "J. R. R. Tolkien"},{"pseudo":"Hugo","name":"Victor Hugo"}]"""
     val library = parseJson(s"""{"book":$allBooks,"authors":$authors}""")
 
-    JsonPath.query("""$.authors[?(@.pseudo=='Tolkien')].name""", library) should findElements(text("J. R. R. Tolkien"))
+    JsonPath.query("""$.authors[?(@.pseudo=='Tolkien')].name""", library, false) should findElements(text("J. R. R. Tolkien"))
 
-    JsonPath.query("""$.book[?(@.author==$.authors[?(@.pseudo=='Tolkien')].name)].title""", library) should findElements(text("The Lord of the Rings"))
-    JsonPath.query("""$.book[?(@.author==$.authors[?(@.pseudo=='Hugo')].name)].title""", library) should findElements()
+    JsonPath.query("""$.book[?(@.author==$.authors[?(@.pseudo=='Tolkien')].name)].title""", library, false) should findElements(text("The Lord of the Rings"))
+    JsonPath.query("""$.book[?(@.author==$.authors[?(@.pseudo=='Hugo')].name)].title""", library, false) should findElements()
   }
 
   it should "honor current object" in {
-    JsonPath.query("""$..vegetable[?(@.color=='green')].name""", parseJson(veggies)) should findOrderedElements(text("peas"))
+    JsonPath.query("""$..vegetable[?(@.color=='green')].name""", parseJson(veggies), false) should findOrderedElements(text("peas"))
   }
 
   it should "not mess up with node with the same name at different depths in the hierarchy" in {
     val json = """{"foo":{"nico":{"nico":42}}}"""
-    JsonPath.query("""$..foo[?(@.nico)]""", parseJson(json)) should findElements(parseJson("""{"nico":{"nico":42}}}"""))
+    JsonPath.query("""$..foo[?(@.nico)]""", parseJson(json), false) should findElements(parseJson("""{"nico":{"nico":42}}}"""))
   }
 
   "`null` elements" should "be correctly handled" in {
     val fooNull = parseJson("""{"foo":null}""")
-    JsonPath.query("$.foo", fooNull) should findElements(null)
-    JsonPath.query("$.foo.bar", fooNull) should findElements()
+    JsonPath.query("$.foo", fooNull, false) should findElements(null)
+    JsonPath.query("$.foo.bar", fooNull, false) should findElements()
 
     val arrayWithNull = parseJson("""{"foo":[1,null,3,"woot"]}""")
-    JsonPath.query("$.foo[?(@==null)]", arrayWithNull) should findElements(null)
-    JsonPath.query("$.foo[?(@>=null)]", arrayWithNull) should findElements()
-    JsonPath.query("$.foo[?(@>=0.5)]", arrayWithNull) should findOrderedElements(1, 3)
+    JsonPath.query("$.foo[?(@==null)]", arrayWithNull, false) should findElements(null)
+    JsonPath.query("$.foo[?(@>=null)]", arrayWithNull, false) should findElements()
+    JsonPath.query("$.foo[?(@>=0.5)]", arrayWithNull, false) should findOrderedElements(1, 3)
   }
 
   "empty String value" should "be correctly handled" in {
     val emptyStringValue = parseJson("""[{"foo": "bar", "baz": ""}]""")
-    JsonPath.query("$[?(@.baz == '')].foo", emptyStringValue) should findElements(text("bar"))
+    JsonPath.query("$[?(@.baz == '')].foo", emptyStringValue, false) should findElements(text("bar"))
   }
 
   /// Goessner reference examples ///////////////////////////////////////////
 
   "Goessner examples" should "work with finding all the authors" in {
 
-    JsonPath.query("$.store.book[*].author", goessnerJson) should findOrderedElements(
+    JsonPath.query("$.store.book[*].author", goessnerJson, false) should findOrderedElements(
       text("Nigel Rees"), text("Evelyn Waugh"), text("Herman Melville"), text("J. R. R. Tolkien")
     )
-    JsonPath.query("$..author", goessnerJson) should findOrderedElements(
+    JsonPath.query("$..author", goessnerJson, false) should findOrderedElements(
       text("Nigel Rees"), text("Evelyn Waugh"), text("Herman Melville"), text("J. R. R. Tolkien")
     )
   }
 
   it should "work with getting the whole store" in {
-    JsonPath.query("$..book.*", goessnerJson) should findElements()
-    JsonPath.query("$.store.*", goessnerJson) should findOrderedElements(parseJson(allBooks), parseJson(bicycle))
+    JsonPath.query("$..book.*", goessnerJson, false) should findElements()
+    JsonPath.query("$.store.*", goessnerJson, false) should findOrderedElements(parseJson(allBooks), parseJson(bicycle))
   }
 
   it should "work with getting all prices" in {
-    JsonPath.query("$.store..price", goessnerJson) should findOrderedElements(
+    JsonPath.query("$.store..price", goessnerJson, false) should findOrderedElements(
       double(8.95), double(12.99), double(8.99), double(22.99), double(19.95)
     )
   }
 
   it should "work with getting books by indices" in {
-    JsonPath.query("$..book[2]", goessnerJson) should findOrderedElements(parseJson(book3))
-    JsonPath.query("$..book[-1:]", goessnerJson) should findOrderedElements(parseJson(book4))
-    JsonPath.query("$..book[0,1]", goessnerJson) should findOrderedElements(parseJson(book1), parseJson(book2))
-    JsonPath.query("$..book[:2]", goessnerJson) should findOrderedElements(parseJson(book1), parseJson(book2))
+    JsonPath.query("$..book[2]", goessnerJson, false) should findOrderedElements(parseJson(book3))
+    JsonPath.query("$..book[-1:]", goessnerJson, false) should findOrderedElements(parseJson(book4))
+    JsonPath.query("$..book[0,1]", goessnerJson, false) should findOrderedElements(parseJson(book1), parseJson(book2))
+    JsonPath.query("$..book[:2]", goessnerJson, false) should findOrderedElements(parseJson(book1), parseJson(book2))
   }
 
   it should "allow to get everything" in {
-    JsonPath.query("$..*", goessnerJson) should findElements(goessnerJson, parseJson(allStore),
+    JsonPath.query("$..*", goessnerJson, false) should findElements(goessnerJson, parseJson(allStore),
       parseJson(bicycle), text("red"), double(19.95),
       parseJson(allBooks),
       text("Nigel Rees"), text("Sayings of the Century"), text("reference"), double(8.95),
@@ -1075,59 +1075,85 @@ class JsonPathSpec extends FlatSpec with Matchers with JsonPathMatchers {
   }
 
   it should "work with subscript filters" in {
-    JsonPath.query("$..book[?(@.isbn)]", goessnerJson) should findOrderedElements(
+    JsonPath.query("$..book[?(@.isbn)]", goessnerJson, false) should findOrderedElements(
       parseJson(book3), parseJson(book4)
     )
-    JsonPath.query("$..book[?(@.isbn)].title", goessnerJson) should findOrderedElements(
+    JsonPath.query("$..book[?(@.isbn)].title", goessnerJson, false) should findOrderedElements(
       text("Moby Dick"), text("The Lord of the Rings")
     )
-    JsonPath.query("$.store.book[?(@.category == 'fiction')].title", goessnerJson) should findOrderedElements(
+    JsonPath.query("$.store.book[?(@.category == 'fiction')].title", goessnerJson, false) should findOrderedElements(
       text("Sword of Honour"), text("Moby Dick"), text("The Lord of the Rings")
     )
-    JsonPath.query("$.store.book[?(@.price < 20 && @.price > 8.96)].title", goessnerJson) should findOrderedElements(
+    JsonPath.query("$.store.book[?(@.price < 20 && @.price > 8.96)].title", goessnerJson, false) should findOrderedElements(
       text("Sword of Honour"), text("Moby Dick")
     )
 
   }
 
   "Recursive" should "honor filters directly on root" in {
-    JsonPath.query("$[?(@.id==19434 && @.foo==1)].foo", parseJson(json)) should findOrderedElements(int(1))
+    JsonPath.query("$[?(@.id==19434 && @.foo==1)].foo", parseJson(json), false) should findOrderedElements(int(1))
   }
 
   it should "honor recursive filters from root" in {
-    JsonPath.query("$..*[?(@.id==19434 && @.foo==1)].foo", parseJson(json)) should findOrderedElements(int(1))
+    JsonPath.query("$..*[?(@.id==19434 && @.foo==1)].foo", parseJson(json), false) should findOrderedElements(int(1))
   }
 
   "Searches" should "honor recursive field + recursive filter + recursive field" in {
-    JsonPath.query("""$..changes..[?(@.selectmode)]..id""", parseJson(searches)) should findOrderedElements(text("1012"))
+    JsonPath.query("""$..changes..[?(@.selectmode)]..id""", parseJson(searches), false) should findOrderedElements(text("1012"))
   }
 
   it should "honor recursive filter from root + recursive field" in {
-    JsonPath.query("""$..[?(@.selectmode)]..id""", parseJson(searches)) should findOrderedElements(text("1012"))
+    JsonPath.query("""$..[?(@.selectmode)]..id""", parseJson(searches), false) should findOrderedElements(text("1012"))
   }
 
   it should "honor recursive filter from root + field" in {
-    JsonPath.query("""$..[?(@.selectmode)].id""", parseJson(searches)) should findOrderedElements(text("1012"))
+    JsonPath.query("""$..[?(@.selectmode)].id""", parseJson(searches), false) should findOrderedElements(text("1012"))
   }
 
   it should "honor recursive filter with wildcard from root + field" in {
-    JsonPath.query("""$..*[?(@.selectmode)].id""", parseJson(searches)) should findOrderedElements(text("1012"))
+    JsonPath.query("""$..*[?(@.selectmode)].id""", parseJson(searches), false) should findOrderedElements(text("1012"))
   }
 
   it should "honor recursive filter with wildcard from root + recursive field" in {
-    JsonPath.query("""$..*[?(@.selectmode)]..id""", parseJson(searches)) should findOrderedElements(text("1012"))
+    JsonPath.query("""$..*[?(@.selectmode)]..id""", parseJson(searches), false) should findOrderedElements(text("1012"))
   }
 
   it should "honor deep array access filter" in {
-    JsonPath.query("""$..changes[?(@[2][1].selectmode)][2][1].id""", parseJson(searches)) should findOrderedElements(text("1012"))
+    JsonPath.query("""$..changes[?(@[2][1].selectmode)][2][1].id""", parseJson(searches), false) should findOrderedElements(text("1012"))
   }
 
   it should "work fine when filter contains parens" in {
-    JsonPath.query("""$..*[?(@.message1=='bar(baz)')].id""", parseJson(valuesWithParensAndBraces)) should findOrderedElements(int(1))
+    JsonPath.query("""$..*[?(@.message1=='bar(baz)')].id""", parseJson(valuesWithParensAndBraces), false) should findOrderedElements(int(1))
   }
 
   it should "work fine when filter contains square braces" in {
-    JsonPath.query("""$..*[?(@.message2=='bar[baz]')].id""", parseJson(valuesWithParensAndBraces)) should findOrderedElements(int(1))
+    JsonPath.query("""$..*[?(@.message2=='bar[baz]')].id""", parseJson(valuesWithParensAndBraces), false) should findOrderedElements(int(1))
+  }
+
+  it should "return null for missing fields if acceptMissingFields is set to true" in {
+    val json = parseJson(
+      """[
+        |       {
+        |         "string_1" : "value 1",
+        |         "string_2" : "value 2",
+        |         "array_1" : [
+        |           "array value 1",
+        |           "array value 2",
+        |           "array value 3"
+        |         ],
+        |         "int_1": 1
+        |       },
+        |       {
+        |         "string_1" : "value 1",
+        |         "array_1" : [
+        |           "array value 1"
+        |         ],
+        |         "int_1": 1
+        |       }
+        |    ]""".stripMargin)
+
+    JsonPath.query("""$[*].string_2""", json, true) should findOrderedElements(text("value 2"), null)
+    JsonPath.query("""$[*].array_1[1]""", json, true) should findOrderedElements(text("array value 2"), null)
   }
 }
 
